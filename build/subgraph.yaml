@@ -1,0 +1,28 @@
+specVersion: 0.0.2
+description: Ethereum Voting System
+repository: https://github.com/jchayan/ethereum-ballot
+schema:
+  file: schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Ballot
+    network: mainnet
+    source:
+      address: "0x77045E71a7A2c50903d88e564cD72fab11e82051"
+      abi: Ballot
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Voter
+      abis:
+        - name: Ballot
+          file: Ballot/artifacts/contracts/Ballot.sol/Ballot.json
+      eventHandlers:
+        - event: Voted(indexed address,uint256,uint256)
+          handler: handleVoted
+        - event: Delegated(indexed address,indexed address)
+          handler: handleDelegated
+      file: Ballot/Ballot.wasm

@@ -16,7 +16,7 @@ async function main() {
 }
 
 main().then(ballot => {
-    console.log("Ballot deployed to:", ballot.address);
+    console.log(`Ballot deployed to: ${ballot.address} on block number: ${ballot.deployTransaction.blockNumber}`);
     process.exit(0);
 }).catch((error) => {
     console.error(error);

@@ -20,8 +20,8 @@ contract Ballot {
     mapping(address => Voter) public voters;
     Proposal[] public proposals;
 
-    event GiveRightToVote(address indexed voter);
-    event Vote(address indexed voter);
+    event Voted(address indexed voterId, uint weight, uint proposal);
+    event Delegated(address indexed voterId, address indexed delegateId);
 
     constructor(bytes32[] memory proposalNames) {
         chairperson = msg.sender;
@@ -38,13 +38,12 @@ contract Ballot {
         require(voters[voter].weight == 0, 'You have already been given rights');
 
         voters[voter].weight = 1;
-        emit GiveRightToVote(voter);
     }
 
     function delegate(address to) public {
-        Voter storage sender = voters[msg.sender];
+        Voter storage voter = voters[msg.sender];
 
-        require(!sender.voted, 'You have already voted');
+        require(!voter.voted, 'You have already voted');
         require(msg.sender != to, "You can't delegate to yourself");
 
         while (voters[to].delegate != address(0)) {
@@ -52,31 +51,32 @@ contract Ballot {
             require(msg.sender != to, 'Delegation loop found');
         }
 
-        sender.voted = true;
-        sender.delegate = to;
+        voter.voted = true;
+        voter.delegate = to;
 
         Voter storage delegate_ = voters[to];
 
         if (delegate_.voted) {
-            proposals[delegate_.vote].votes += sender.weight;
+            proposals[delegate_.vote].votes += voter.weight;
         } else {
-            delegate_.weight += sender.weight;
+            delegate_.weight += voter.weight;
         }
+        emit Delegated(msg.sender, to);
     }
 
     function vote(uint proposal) public {
-        Voter storage sender = voters[msg.sender];
+        Voter storage voter = voters[msg.sender];
 
-        require(sender.weight != 0, 'Has no right to vote');
-        require(!sender.voted, 'Already voted');
+        require(voter.weight != 0, 'Has no right to vote');
+        require(!voter.voted, 'Already voted');
 
-        sender.voted = true;
-        sender.vote  = proposal;
+        voter.voted = true;
+        voter.vote  = proposal;
 
         // If 'proposal' is out of the range of the array,
         // this will throw automatically and revert changes.
-        proposals[proposal].votes += sender.weight;
-        emit Vote(msg.sender);
+        proposals[proposal].votes += voter.weight;
+        emit Voted(msg.sender, voter.weight, voter.vote);
     }
 
     function winningProposal() public view returns (uint winningProposal_) {
@@ -91,5 +91,9 @@ contract Ballot {
 
     function winnerName() public view returns (bytes32 winnerName_) {
         winnerName_ = proposals[winningProposal()].name;
+    }
+
+    function winnerVotes() public view returns (uint winnerVotes_) {
+        winnerVotes_ = proposals[winningProposal()].votes;
     }
 }

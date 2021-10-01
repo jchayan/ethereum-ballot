@@ -1,12 +1,23 @@
 {
-  "name": "hardhat-project",
+  "name": "ethereum-ballot",
+  "scripts": {
+    "build-contract": "npx hardhat compile",
+    "create": "graph create ballot --node https://api.thegraph.com/deploy/",
+    "create-local": "graph create ballot --node http://127.0.0.1:8020",
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy ballot --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "deploy-local": "graph deploy ballot --ipfs http://localhost:5001 --node http://127.0.0.1:8020"
+  },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.7",
-    "hardhat": "^2.6.4"
+    "hardhat": "^2.6.4",
+    "@graphprotocol/graph-cli": "^0.22.1",
+    "@graphprotocol/graph-ts": "^0.22.1"
   },
   "dependencies": {
     "minimist": "^1.2.5"

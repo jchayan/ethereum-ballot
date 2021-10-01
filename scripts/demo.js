@@ -16,15 +16,19 @@ const giveRightsToVote = (ballot, addresses) => {
         return tx.wait();
     });
 
-    return Promise.all(rightPromises);
+    return Promise.all(rightPromises).catch(console.error);
 };
 
-const vote = (ballot, signers) => {
-    const voterSets = [ 
-        [signers[0], signers[1]],
-        [signers[2], signers[3], signers[4]]
-    ];
+const delegateVotes = (ballot, voters, to) => {
+    const delegatePromises = voters.map(async (voter) => {
+        let tx = await ballot.connect(voter).delegate(to, TX_OVERRIDES);
+        return tx.wait();
+    });
 
+    return Promise.all(delegatePromises);
+};
+
+const vote = (ballot, voterSets) => {
     const votePromises = voterSets.map((set, candidateId) => {
         return set.map(async (voter) => {
             let ballotVoter = ballot.connect(voter);
@@ -36,14 +40,12 @@ const vote = (ballot, signers) => {
     return Promise.all(votePromises);
 };
 
-const getSigners = provider => {
-    return [
-        provider.getSigner(1),
-        provider.getSigner(2),
-        provider.getSigner(3),
-        provider.getSigner(4),
-        provider.getSigner(5)
-    ];
+const getVoters = (provider, from, to) => {
+    let voters = [];
+    for (let i = from; i <= to; i++) {
+        voters.push(provider.getSigner(i));
+    }
+    return voters;
 }
 
 const getAddresses = signers => {
@@ -52,23 +54,40 @@ const getAddresses = signers => {
 };
 
 const getWinner = async (ballot) => {
-    const winnerName = await ballot.winnerName();
-    return ethers.utils.parseBytes32String(winnerName);
+    const winnerName  = await ballot.winnerName();
+    const winnerVotes = await ballot.winnerVotes();
+    return {
+        name  : ethers.utils.parseBytes32String(winnerName),
+        votes : winnerVotes
+    };
 };
 
 const main = async () => {
     const address = options.address;
+
     const provider = new ethers.providers.JsonRpcProvider('http://localhost:4444');
     const chairman = provider.getSigner(0);
+    const chairmanAddress = await chairman.getAddress();
 
-    let ballot = new ethers.Contract(address, abi, chairman);
-    const signers = getSigners(provider);
+    const ballot = new ethers.Contract(address, abi, chairman);
+    const signers = getVoters(provider, 1, 5);
+
+    const voterSets = [ 
+        [signers[0], signers[1]],
+        [signers[2], signers[3], signers[4]]
+    ];
+
+    const votersToDelegate = getVoters(provider, 6, 8);
 
     getAddresses(signers)
         .then(addresses => giveRightsToVote(ballot, addresses))
-        .then(() => vote(ballot, signers))
+        .then(() => vote(ballot, voterSets))
         .then(() => getWinner(ballot))
-        .then(console.log);
+        .then(winner => console.log(`Winner before chairman vote: ${winner.name} with ${winner.votes} votes`))
+        .then(() =>  delegateVotes(ballot, votersToDelegate, chairmanAddress))
+        .then(() => vote(ballot, [ [chairman] ]))
+        .then(() => getWinner(ballot))
+        .then(winner => console.log(`Winner after chairman vote: ${winner.name} with ${winner.votes} votes`));
 };
 
 main();

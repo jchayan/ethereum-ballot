@@ -1,0 +1,12 @@
+type Vote @entity {
+  id: ID!
+  weight: BigInt!
+  voterAddress: Bytes!
+  votedProposal: BigInt!
+}
+
+type Delegation @entity {
+  id: ID!
+  voterAddress: Bytes!
+  delegateAddress: Bytes!
+}
